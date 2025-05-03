@@ -5,131 +5,115 @@
   <meta charset="UTF-8">
   <title>Upgrade Schedule Lookup</title>
   <style>
-    body {
+    body {{
       font-family: Arial, sans-serif;
-      background-color: #f5f7f8;
-      color: #000;
+      background-color: #f8f9fa;
       padding: 20px;
-    }
-    h2 {
+    }}
+    h1 {{
       color: #002855;
-    }
-    .note {
-      background-color: #e1ecf4;
-      border-left: 4px solid #002855;
-      padding: 10px;
+    }}
+    .info {{
+      background-color: #e3edf5;
+      padding: 10px 15px;
+      border-left: 6px solid #002855;
       margin-bottom: 20px;
-    }
-    input {
-      padding: 8px;
+    }}
+    input {{
       width: 100%;
-      max-width: 400px;
-      margin-bottom: 20px;
+      padding: 10px;
       font-size: 16px;
-    }
-    table {
+      margin-bottom: 20px;
+      box-sizing: border-box;
+    }}
+    table {{
       width: 100%;
       border-collapse: collapse;
-    }
-    th {
+    }}
+    th {{
       background-color: #002855;
-      color: white;
-      padding: 10px;
+      color: #ffffff;
+      padding: 12px;
       text-align: left;
-    }
-    td {
-      background-color: #ffffff;
+    }}
+    td {{
       padding: 10px;
-      border-bottom: 1px solid #ccc;
-    }
-    tr:nth-child(even) td {
-      background-color: #f1f1f1;
-    }
+      border-bottom: 1px solid #ddd;
+    }}
+    tr:nth-child(even) {{
+      background-color: #f2f2f2;
+    }}
   </style>
 </head>
 <body>
-  <h2>Upgrade Schedule Lookup</h2>
-  <div class="note">
-    <p>Enter your name or computer ID below to check your upgrade date.<br>
-    If you do not see your device, it may already have been upgraded. Please contact Tech Support with questions.</p>
+  <h1>Upgrade Schedule Lookup</h1>
+  <div class="info">
+    Enter your name or computer ID below to check your upgrade date.<br>
+    If you do not see your device, it may already have been upgraded. Please contact Tech Support with questions.
   </div>
-  <input type="text" id="search" placeholder="Search by name or computer ID" autofocus />
+  <input type="text" id="search" placeholder="Search by name or computer ID" oninput="renderTable()" autofocus />
   <div id="output">Loading...</div>
-
   <script>
     const SHEET_ID = "13c6BTkvAj8hyE7mQNCU7XNE5_MDkqEsGljyhy4EVGqg";
-    const SHEET_GID = "0";  // assuming first tab
-    const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${SHEET_GID}`;
+    const SHEET_NAME = "CleanView";
+    const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${SHEET_NAME}&tqx=out:json`;
 
-    const DATE_COLUMN = "Scheduled Date";
-
-    function formatDate(val) {
-      try {
-        const d = new Date(val);
-        const day = String(d.getDate()).padStart(2, '0');
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const year = d.getFullYear();
-        return `${day}/${month}/${year}`;
-      } catch {
-        return "Not Scheduled";
-      }
-    }
+    let rawData = [];
 
     fetch(SHEET_URL)
       .then(res => res.text())
-      .then(text => {
+      .then(text => {{
         const json = JSON.parse(text.substring(47).slice(0, -2));
         const cols = json.table.cols.map(col => col.label);
         const rows = json.table.rows.map(row => row.c.map(c => (c ? c.v : '')));
-        const data = rows.map(r => Object.fromEntries(cols.map((col, i) => [col, r[i]])));
-
-        // Only use first 6 columns
-        const keys = cols.slice(0, 6);
-
-        data.forEach(row => {
-          if (row[DATE_COLUMN] && typeof row[DATE_COLUMN] === "object" && "f" in row[DATE_COLUMN]) {
-            row[DATE_COLUMN] = row[DATE_COLUMN].f;
-          } else if (row[DATE_COLUMN]) {
-            row[DATE_COLUMN] = formatDate(row[DATE_COLUMN]);
-          } else {
-            row[DATE_COLUMN] = "Not Scheduled";
-          }
-        });
-
-        window.rawData = data;
-        window.headers = keys;
+        rawData = rows.map(r => Object.fromEntries(cols.map((col, i) => [col, r[i]])));
         renderTable();
-      })
-      .catch(() => {
+      }})
+      .catch(err => {{
         document.getElementById("output").innerHTML = "❌ Failed to load data.";
-      });
+        console.error(err);
+      }});
 
-    function renderTable() {
+    function formatDate(value) {{
+      if (typeof value === 'string' && /^\d{{1,2}}\/\d{{1,2}}\/\d{{4}}$/.test(value)) {{
+        const [m, d, y] = value.split('/');
+        return `${m.padStart(2, '0')}/${d.padStart(2, '0')}/${y}`;
+      }}
+      if (Object.prototype.toString.call(value) === '[object Date]' || typeof value === 'object') {{
+        const date = new Date(value);
+        return `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')}/${date.getFullYear()}`;
+      }}
+      return value || "Not Scheduled";
+    }}
+
+    function renderTable() {{
       const input = document.getElementById("search").value.toLowerCase();
-      const filtered = window.rawData.filter(row =>
-        window.headers.some(key => row[key] && row[key].toString().toLowerCase().includes(input))
+      const filtered = rawData.filter(row =>
+        Object.values(row).some(v => (v + "").toLowerCase().includes(input))
       );
 
-      if (filtered.length === 0) {
+      if (filtered.length === 0) {{
         document.getElementById("output").innerHTML = "<p>No matches found.</p>";
         return;
-      }
+      }}
 
+      const headers = Object.keys(filtered[0]).slice(0, 6);
       let html = "<table><thead><tr>";
-      for (let key of window.headers) html += `<th>${key}</th>`;
+      headers.forEach(h => html += `<th>${h}</th>`);
       html += "</tr></thead><tbody>";
 
-      for (let row of filtered) {
+      filtered.forEach(row => {{
         html += "<tr>";
-        for (let key of window.headers) html += `<td>${row[key] || ''}</td>`;
+        headers.forEach(h => {{
+          const cell = h.toLowerCase().includes("date") ? formatDate(row[h]) : row[h];
+          html += `<td>${cell}</td>`;
+        }});
         html += "</tr>";
-      }
+      }});
 
       html += "</tbody></table>";
       document.getElementById("output").innerHTML = html;
-    }
-
-    document.getElementById("search").addEventListener("input", renderTable);
+    }}
   </script>
 </body>
 </html>
