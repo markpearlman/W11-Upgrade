@@ -2,83 +2,46 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Windows 11 Upgrade Lookup</title>
+  <title>Upgrade Schedule Lookup</title>
   <style>
     body {
-      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      font-family: Arial, sans-serif;
+      padding: 30px;
       background-color: #f9f9f9;
-      padding: 20px;
-      max-width: 960px;
-      margin: auto;
     }
-
-    h1 {
-      text-align: center;
+    h2 {
       color: #333;
     }
-
     input {
-      display: block;
-      width: 100%;
-      max-width: 400px;
-      margin: 20px auto;
-      padding: 10px;
-      font-size: 16px;
+      padding: 8px;
+      width: 300px;
+      margin-top: 10px;
       border: 1px solid #ccc;
       border-radius: 4px;
     }
-
-    #output {
-      margin-top: 20px;
-    }
-
     table {
-      width: 100%;
       border-collapse: collapse;
-      margin-top: 10px;
-      background-color: #fff;
+      margin-top: 20px;
+      width: 100%;
+      background: white;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
     }
-
     th, td {
-      text-align: left;
-      padding: 10px;
       border: 1px solid #ddd;
+      padding: 10px;
+      text-align: left;
     }
-
     th {
-      background-color: #f1f1f1;
+      background-color: #f0f0f0;
     }
-
-    @media screen and (max-width: 600px) {
-      table, thead, tbody, th, td, tr {
-        display: block;
-      }
-
-      th {
-        position: sticky;
-        top: 0;
-        background-color: #eee;
-        z-index: 1;
-      }
-
-      td {
-        border: none;
-        position: relative;
-        padding-left: 50%;
-      }
-
-      td::before {
-        position: absolute;
-        left: 10px;
-        top: 10px;
-        white-space: nowrap;
-        font-weight: bold;
-      }
+    #output p {
+      margin-top: 20px;
+      color: #555;
     }
   </style>
 </head>
 <body>
-  <h1>Windows 11 Upgrade Lookup</h1>
+  <h2>Upgrade Schedule Lookup</h2>
   <input type="text" id="search" placeholder="Search by name or computer ID" oninput="renderTable()">
   <div id="output">Loading...</div>
 
@@ -93,7 +56,7 @@
       .then(text => {
         const json = JSON.parse(text.substring(47).slice(0, -2));
         const cols = json.table.cols.map(col => col.label);
-        const rows = json.table.rows.map(row => row.c.map(c => c ? c.v : ''));
+        const rows = json.table.rows.map(row => row.c.map(c => (c ? c.v : '')));
         rawData = rows.map(r => Object.fromEntries(cols.map((col, i) => [col, r[i]])));
         renderTable();
       })
@@ -104,8 +67,9 @@
 
     function renderTable() {
       const input = document.getElementById("search").value.toLowerCase();
+
       const filtered = rawData.filter(row =>
-        Object.values(row).some(val =>
+        Object.values(row).slice(0, 6).some(val =>
           val && val.toString().toLowerCase().includes(input)
         )
       );
@@ -115,5 +79,31 @@
         return;
       }
 
+      const keys = Object.keys(filtered[0]).slice(0, 6); // First 6 columns
+
       let html = "<table><thead><tr>";
-      for (let key in filtered[0])
+      for (let key of keys) html += `<th>${key}</th>`;
+      html += "</tr></thead><tbody>";
+
+      for (let row of filtered) {
+        html += "<tr>";
+        for (let key of keys) {
+          let val = row[key];
+          // Handle Google Sheets Date objects
+          if (typeof val === "string" && val.startsWith("Date(")) {
+            const parts = val.match(/\d+/g);
+            if (parts && parts.length >= 3) {
+              val = `${+parts[1]}/${+parts[2]}/${parts[0]}`;
+            }
+          }
+          html += `<td>${val}</td>`;
+        }
+        html += "</tr>";
+      }
+
+      html += "</tbody></table>";
+      document.getElementById("output").innerHTML = html;
+    }
+  </script>
+</body>
+</html>
