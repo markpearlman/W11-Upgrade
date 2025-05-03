@@ -1,0 +1,115 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Windows 11 Upgrade Lookup</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f5f5f5;
+      padding: 30px;
+    }
+    h2 {
+      color: #003049;
+    }
+    p {
+      max-width: 700px;
+      margin-bottom: 20px;
+    }
+    input {
+      padding: 8px;
+      width: 300px;
+      font-size: 16px;
+      margin-bottom: 20px;
+    }
+    #output table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+    #output th, #output td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: left;
+    }
+    #output th {
+      background-color: #0a1e3f;
+      color: #ffffff;
+    }
+    #output tr:nth-child(even) {
+      background-color: #f0f0f0;
+    }
+  </style>
+</head>
+<body>
+  <h2>Check Your Windows 11 Upgrade Date</h2>
+  <p>Search by your name or computer ID to find your scheduled upgrade. If you don’t see your device listed, it may have already been upgraded or is not scheduled yet. Contact Tech Support if you have questions.</p>
+  <input type="text" id="search" placeholder="Search by name or ID" autofocus />
+  <div id="output">Loading...</div>
+
+  <script>
+    const SHEET_ID = "13c6BTkvAj8hyE7mQNCU7XNE5_MDkqEsGljyhy4EVGqg";
+    const SHEET_NAME = "CleanView";
+    const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${SHEET_NAME}&tqx=out:json`;
+
+    const COLUMNS_TO_SHOW = ["Last", "First", "Upgrade/Replace", "Machine Type", "Scheduled Date", "Computer ID"];
+
+    function formatDate(val) {
+      if (typeof val === 'string' && val.startsWith('Date(')) {
+        try {
+          const parts = val.match(/\d+/g);
+          const date = new Date(parts[0], parts[1] - 1, parts[2]);
+          return new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).format(date);
+        } catch {
+          return val;
+        }
+      }
+      return val || 'Not scheduled';
+    }
+
+    fetch(SHEET_URL)
+      .then(res => res.text())
+      .then(text => {
+        const json = JSON.parse(text.substring(47).slice(0, -2));
+        const cols = json.table.cols.map(col => col.label);
+        const rows = json.table.rows.map(row =>
+          row.c.map(c => formatDate(c?.v))
+        );
+        const data = rows.map(r => Object.fromEntries(cols.map((col, i) => [col, r[i]])));
+        renderTable(data);
+        window.rawData = data;
+      })
+      .catch(err => {
+        document.getElementById("output").innerHTML = "❌ Failed to load data.";
+        console.error(err);
+      });
+
+    function renderTable(data = window.rawData) {
+      const input = document.getElementById("search").value.toLowerCase();
+      const filtered = data.filter(row =>
+        Object.values(row).some(val => val.toLowerCase?.().includes(input))
+      );
+
+      if (filtered.length === 0) {
+        document.getElementById("output").innerHTML = "<p>No matches found.</p>";
+        return;
+      }
+
+      let html = "<table><tr>";
+      for (let key of COLUMNS_TO_SHOW) html += `<th>${key}</th>`;
+      html += "</tr>";
+
+      for (let row of filtered) {
+        html += "<tr>";
+        for (let key of COLUMNS_TO_SHOW) html += `<td>${row[key] || ''}</td>`;
+        html += "</tr>";
+      }
+
+      html += "</table>";
+      document.getElementById("output").innerHTML = html;
+    }
+
+    document.getElementById("search").addEventListener("input", () => renderTable());
+  </script>
+</body>
+</html>
