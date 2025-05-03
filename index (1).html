@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Upgrade Schedule Lookup</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 30px;
+      background-color: #f9f9f9;
+    }
+    h2 {
+      color: #333;
+    }
+    input {
+      padding: 8px;
+      width: 300px;
+      margin-top: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    table {
+      border-collapse: collapse;
+      margin-top: 20px;
+      width: 100%;
+      background: white;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: left;
+    }
+    th {
+      background-color: #f0f0f0;
+    }
+    #output p {
+      margin-top: 20px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <h2>Upgrade Schedule Lookup</h2>
+  <input type="text" id="search" placeholder="Search by name or computer ID" oninput="renderTable()">
+  <div id="output">Loading...</div>
+
+  <script>
+    const SHEET_ID = "13c6BTkvAj8hyE7mQNCU7XNE5_MDkqEsGljyhy4EVGqg";
+    const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=CleanView&tqx=out:json`;
+
+    let rawData = [];
+
+    fetch(SHEET_URL)
+      .then(res => res.text())
+      .then(text => {
+        const json = JSON.parse(text.substring(47).slice(0, -2));
+        const cols = json.table.cols.map(col => col.label);
+        const rows = json.table.rows.map(row => row.c.map(c => c ? c.v : ''));
+        rawData = rows.map(r => Object.fromEntries(cols.map((col, i) => [col, r[i]])));
+        renderTable();
+      })
+      .catch(err => {
+        document.getElementById("output").innerHTML = "❌ Failed to load data.";
+        console.error(err);
+      });
+
+    function renderTable() {
+      const input = document.getElementById("search").value.toLowerCase();
+
+      const filtered = rawData.filter(row =>
+        Object.values(row).slice(0, 6).some(val =>
+          val && val.toString().toLowerCase().includes(input)
+        )
+      );
+
+      if (filtered.length === 0) {
+        document.getElementById("output").innerHTML = "<p>No matches found.</p>";
+        return;
+      }
+
+      const keys = Object.keys(filtered[0]).slice(0, 6); // First 6 columns
+
+      let html = "<table><thead><tr>";
+      for (let key of keys) html += `<th>${key}</th>`;
+      html += "</tr></thead><tbody>";
+
+      for (let row of filtered) {
+        html += "<tr>";
+        for (let i = 0; i < keys.length; i++) {
+          let key = keys[i];
+          let val = row[key];
+
+          if (key === "Scheduled Date") {
+            if (!val) {
+              val = "Not scheduled";
+            } else if (typeof val === "string" && val.startsWith("Date(")) {
+              const parts = val.match(/\d+/g);
+              if (parts && parts.length >= 3) {
+                val = `${+parts[1]}/${+parts[2]}/${parts[0]}`;
+              }
+            }
+          }
+
+          html += `<td>${val}</td>`;
+        }
+        html += "</tr>";
+      }
+
+      html += "</tbody></table>";
+      document.getElementById("output").innerHTML = html;
+    }
+  </script>
+</body>
+</html>
