@@ -1,49 +1,45 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Upgrade Schedule Lookup</title>
+  <meta charset="UTF-8" />
+  <title>Windows 11 Upgrade Lookup</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f9f9f9;
-      color: #333;
-      padding: 20px;
+      background-color: #f5f5f5;
+      padding: 30px;
     }
     h2 {
-      color: #003366;
+      color: #003049;
     }
     input {
-      margin-bottom: 20px;
-      padding: 10px;
+      padding: 8px;
       width: 300px;
       font-size: 16px;
+      margin-bottom: 20px;
     }
-    table {
-      width: 100%;
+    #output table {
       border-collapse: collapse;
-      margin-top: 20px;
+      width: 100%;
     }
-    th {
-      background-color: #003366;
-      color: #ffffff;
+    #output th, #output td {
+      border: 1px solid #ccc;
       padding: 10px;
       text-align: left;
     }
-    td {
-      padding: 10px;
-      border-bottom: 1px solid #ccc;
+    #output th {
+      background-color: #0a1e3f;
+      color: #ffffff;
     }
-    tr:nth-child(even) {
-      background-color: #eef2f7;
+    #output tr:nth-child(even) {
+      background-color: #f0f0f0;
     }
   </style>
 </head>
 <body>
-  <h2>Upgrade Schedule Lookup</h2>
-  <p>Enter your first name, last name, or computer ID to check when your machine is scheduled for a Windows 11 upgrade. If you don’t see your device, it may have already been upgraded or is not yet scheduled. Contact Tech Support if you have questions.</p>
-  <input type="text" id="search" placeholder="Search..." autofocus>
+  <h2>Check Your Windows 11 Upgrade Date</h2>
+  <p>Search by your name or computer ID to find your scheduled upgrade. If you don’t see your device listed, it may have already been upgraded or is not scheduled yet. Contact Tech Support if you have questions.</p>
+  <input type="text" id="search" placeholder="Search by name or ID" autofocus />
   <div id="output">Loading...</div>
 
   <script>
@@ -51,43 +47,43 @@
     const SHEET_NAME = "CleanView";
     const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${SHEET_NAME}&tqx=out:json`;
 
-    let rawData = [];
+    function formatDate(val) {
+      if (typeof val === 'object' && val instanceof Date) {
+        return new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).format(val);
+      }
+      if (typeof val === 'string' && val.startsWith('Date(')) {
+        try {
+          const parts = val.match(/\d+/g);
+          const date = new Date(parts[0], parts[1] - 1, parts[2]);
+          return new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).format(date);
+        } catch {
+          return val;
+        }
+      }
+      return val || 'Not scheduled';
+    }
 
     fetch(SHEET_URL)
       .then(res => res.text())
       .then(text => {
         const json = JSON.parse(text.substring(47).slice(0, -2));
         const cols = json.table.cols.map(col => col.label);
-        const rows = json.table.rows.map(row => row.c.map(c => (c ? c.v : 'Not Scheduled')));
-        rawData = rows.map(r => Object.fromEntries(cols.map((col, i) => [col, r[i]])));
-
-        // Format date column
-        rawData = rawData.map(row => {
-          if (row["Scheduled Date"] && row["Scheduled Date"].startsWith("Date(")) {
-            try {
-              const parts = row["Scheduled Date"].substring(5, row["Scheduled Date"].length - 1).split(",");
-              const year = parseInt(parts[0]);
-              const month = parseInt(parts[1]) + 1; // JS months are 0-indexed
-              const day = parseInt(parts[2]);
-              row["Scheduled Date"] = `${month.toString().padStart(2, '0')}/${day.toString().padStart(2, '0')}/${year}`;
-            } catch {
-              row["Scheduled Date"] = "Invalid Date";
-            }
-          }
-          return row;
-        });
-
-        renderTable();
+        const rows = json.table.rows.map(row =>
+          row.c.map(c => formatDate(c?.v))
+        );
+        const data = rows.map(r => Object.fromEntries(cols.map((col, i) => [col, r[i]])));
+        renderTable(data);
+        window.rawData = data;
       })
       .catch(err => {
         document.getElementById("output").innerHTML = "❌ Failed to load data.";
         console.error(err);
       });
 
-    function renderTable() {
+    function renderTable(data = window.rawData) {
       const input = document.getElementById("search").value.toLowerCase();
-      const filtered = rawData.filter(row =>
-        Object.values(row).some(v => v.toLowerCase().includes(input))
+      const filtered = data.filter(row =>
+        Object.values(row).some(val => val.toLowerCase?.().includes(input))
       );
 
       if (filtered.length === 0) {
@@ -95,15 +91,13 @@
         return;
       }
 
-      const visibleKeys = Object.keys(filtered[0]).slice(0, 6);
-
       let html = "<table><tr>";
-      for (let key of visibleKeys) html += `<th>${key}</th>`;
+      for (let key in filtered[0]) html += `<th>${key}</th>`;
       html += "</tr>";
 
       for (let row of filtered) {
         html += "<tr>";
-        for (let key of visibleKeys) html += `<td>${row[key]}</td>`;
+        for (let key in row) html += `<td>${row[key]}</td>`;
         html += "</tr>";
       }
 
@@ -111,7 +105,7 @@
       document.getElementById("output").innerHTML = html;
     }
 
-    document.getElementById("search").addEventListener("input", renderTable);
+    document.getElementById("search").addEventListener("input", () => renderTable());
   </script>
 </body>
 </html>
