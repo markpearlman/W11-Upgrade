@@ -1,56 +1,49 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Windows 11 Upgrade Schedule</title>
+  <meta charset="UTF-8">
+  <title>Upgrade Schedule Lookup</title>
   <style>
     body {
-      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-      background: #f8f9fa;
+      font-family: Arial, sans-serif;
+      background: #f9f9f9;
       color: #333;
-      padding: 40px;
+      padding: 20px;
     }
     h2 {
-      color: #1b223b;
-    }
-    #instructions {
-      margin-bottom: 15px;
-      font-size: 1rem;
-      color: #555;
+      color: #003366;
     }
     input {
+      margin-bottom: 20px;
       padding: 10px;
       width: 300px;
-      font-size: 1rem;
+      font-size: 16px;
     }
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 25px;
+      margin-top: 20px;
     }
     th {
-      background-color: #1b223b;
+      background-color: #003366;
       color: #ffffff;
-      font-weight: bold;
       padding: 10px;
       text-align: left;
     }
     td {
       padding: 10px;
-      border-top: 1px solid #ddd;
+      border-bottom: 1px solid #ccc;
     }
-    tr:nth-child(even) td {
-      background-color: #f2f2f2;
+    tr:nth-child(even) {
+      background-color: #eef2f7;
     }
   </style>
 </head>
 <body>
-  <h2>Windows 11 Upgrade Schedule</h2>
-  <div id="instructions">
-    Use the box below to search by your name or computer ID to see when your upgrade is scheduled.<br/>
-    If you don't see your device, it may have already been upgraded or hasn't been scheduled yet.
-  </div>
-  <input type="text" id="search" placeholder="Search by name or computer ID" oninput="renderTable()" autofocus />
+  <h2>Upgrade Schedule Lookup</h2>
+  <p>Enter your first name, last name, or computer ID to check when your machine is scheduled for a Windows 11 upgrade. If you don’t see your device, it may have already been upgraded or is not yet scheduled. Contact Tech Support if you have questions.</p>
+  <input type="text" id="search" placeholder="Search..." autofocus>
   <div id="output">Loading...</div>
 
   <script>
@@ -65,25 +58,25 @@
       .then(text => {
         const json = JSON.parse(text.substring(47).slice(0, -2));
         const cols = json.table.cols.map(col => col.label);
-        const rows = json.table.rows.map(row =>
-          row.c.map(c => (c ? c.v : ""))
-        );
-        rawData = rows.map(r => {
-          const rowObject = {};
-          cols.forEach((col, i) => {
-            let val = r[i];
-            if (col === "Scheduled Date") {
-              if (!val) {
-                val = "Not scheduled";
-              } else if (typeof val === "object" && val instanceof Date === false) {
-                const d = new Date(val);
-                val = (d.getMonth() + 1) + "/" + d.getDate() + "/" + d.getFullYear();
-              }
+        const rows = json.table.rows.map(row => row.c.map(c => (c ? c.v : 'Not Scheduled')));
+        rawData = rows.map(r => Object.fromEntries(cols.map((col, i) => [col, r[i]])));
+
+        // Format date column
+        rawData = rawData.map(row => {
+          if (row["Scheduled Date"] && row["Scheduled Date"].startsWith("Date(")) {
+            try {
+              const parts = row["Scheduled Date"].substring(5, row["Scheduled Date"].length - 1).split(",");
+              const year = parseInt(parts[0]);
+              const month = parseInt(parts[1]) + 1; // JS months are 0-indexed
+              const day = parseInt(parts[2]);
+              row["Scheduled Date"] = `${month.toString().padStart(2, '0')}/${day.toString().padStart(2, '0')}/${year}`;
+            } catch {
+              row["Scheduled Date"] = "Invalid Date";
             }
-            rowObject[col] = val;
-          });
-          return rowObject;
+          }
+          return row;
         });
+
         renderTable();
       })
       .catch(err => {
@@ -94,9 +87,7 @@
     function renderTable() {
       const input = document.getElementById("search").value.toLowerCase();
       const filtered = rawData.filter(row =>
-        Object.values(row).some(v =>
-          v.toLowerCase().includes(input)
-        )
+        Object.values(row).some(v => v.toLowerCase().includes(input))
       );
 
       if (filtered.length === 0) {
@@ -104,24 +95,23 @@
         return;
       }
 
-      const keys = Object.keys(filtered[0]).slice(0, 6);  // First 6 columns only
+      const visibleKeys = Object.keys(filtered[0]).slice(0, 6);
+
       let html = "<table><tr>";
-      keys.forEach(k => {
-        html += `<th>${k}</th>`;
-      });
+      for (let key of visibleKeys) html += `<th>${key}</th>`;
       html += "</tr>";
 
-      filtered.forEach(row => {
+      for (let row of filtered) {
         html += "<tr>";
-        keys.forEach(k => {
-          html += `<td>${row[k]}</td>`;
-        });
+        for (let key of visibleKeys) html += `<td>${row[key]}</td>`;
         html += "</tr>";
-      });
+      }
 
       html += "</table>";
       document.getElementById("output").innerHTML = html;
     }
+
+    document.getElementById("search").addEventListener("input", renderTable);
   </script>
 </body>
 </html>
