@@ -1,17 +1,84 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Upgrade Schedule Lookup</title>
+  <title>Windows 11 Upgrade Lookup</title>
   <style>
-    body { font-family: Arial; padding: 20px; }
-    input { margin-top: 10px; padding: 6px; width: 300px; }
-    table { border-collapse: collapse; margin-top: 20px; width: 100%; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f9f9f9;
+      padding: 20px;
+      max-width: 960px;
+      margin: auto;
+    }
+
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+
+    input {
+      display: block;
+      width: 100%;
+      max-width: 400px;
+      margin: 20px auto;
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    #output {
+      margin-top: 20px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      background-color: #fff;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 10px;
+      border: 1px solid #ddd;
+    }
+
+    th {
+      background-color: #f1f1f1;
+    }
+
+    @media screen and (max-width: 600px) {
+      table, thead, tbody, th, td, tr {
+        display: block;
+      }
+
+      th {
+        position: sticky;
+        top: 0;
+        background-color: #eee;
+        z-index: 1;
+      }
+
+      td {
+        border: none;
+        position: relative;
+        padding-left: 50%;
+      }
+
+      td::before {
+        position: absolute;
+        left: 10px;
+        top: 10px;
+        white-space: nowrap;
+        font-weight: bold;
+      }
+    }
   </style>
 </head>
 <body>
-  <h2>Upgrade Schedule Lookup</h2>
+  <h1>Windows 11 Upgrade Lookup</h1>
   <input type="text" id="search" placeholder="Search by name or computer ID" oninput="renderTable()">
   <div id="output">Loading...</div>
 
@@ -26,7 +93,7 @@
       .then(text => {
         const json = JSON.parse(text.substring(47).slice(0, -2));
         const cols = json.table.cols.map(col => col.label);
-        const rows = json.table.rows.map(row => row.c.map(c => (c ? c.v : '')));
+        const rows = json.table.rows.map(row => row.c.map(c => c ? c.v : ''));
         rawData = rows.map(r => Object.fromEntries(cols.map((col, i) => [col, r[i]])));
         renderTable();
       })
@@ -38,7 +105,9 @@
     function renderTable() {
       const input = document.getElementById("search").value.toLowerCase();
       const filtered = rawData.filter(row =>
-        Object.values(row).some(v => v.toString().toLowerCase().includes(input))
+        Object.values(row).some(val =>
+          val && val.toString().toLowerCase().includes(input)
+        )
       );
 
       if (filtered.length === 0) {
@@ -46,19 +115,5 @@
         return;
       }
 
-      let html = "<table><tr>";
-      for (let key in filtered[0]) html += `<th>${key}</th>`;
-      html += "</tr>";
-
-      for (let row of filtered) {
-        html += "<tr>";
-        for (let key in row) html += `<td>${row[key]}</td>`;
-        html += "</tr>";
-      }
-
-      html += "</table>";
-      document.getElementById("output").innerHTML = html;
-    }
-  </script>
-</body>
-</html>
+      let html = "<table><thead><tr>";
+      for (let key in filtered[0])
