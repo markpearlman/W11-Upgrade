@@ -7,7 +7,7 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      background-color: #f7f9fa;
+      background-color: #f8f9fa;
       padding: 20px;
     }
     h1 {
@@ -58,31 +58,39 @@
     const SHEET_NAME = "CleanView";
     const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${SHEET_NAME}&tqx=out:json`;
 
-    let rawData = [];
+    function formatDateFromGoogle(value) {
+      try {
+        const date = new Date(value);
+        if (isNaN(date)) return "Not Scheduled";
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+        const dd = String(date.getDate()).padStart(2, '0');
+        const yyyy = date.getFullYear();
+        return `${mm}/${dd}/${yyyy}`;
+      } catch {
+        return "Not Scheduled";
+      }
+    }
 
     fetch(SHEET_URL)
       .then(res => res.text())
       .then(text => {
         const json = JSON.parse(text.substring(47).slice(0, -2));
         const cols = json.table.cols.map(col => col.label).slice(0, 6);
-        const rows = json.table.rows.map(row => row.c.map(c => (c ? c.v : '')));
-        rawData = rows.map(r => {
+        const rows = json.table.rows.map(row => row.c.map(c => (c ? c.f || c.v : "")));
+
+        const processed = rows.map(r => {
           const obj = {};
           cols.forEach((col, i) => {
             if (col === "Scheduled Date") {
-              let val = r[i];
-              if (!val || typeof val !== "string" || !val.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
-                obj[col] = "Not Scheduled";
-              } else {
-                const [m, d, y] = val.split('/');
-                obj[col] = `${m.padStart(2, '0')}/${d.padStart(2, '0')}/${y}`;
-              }
+              obj[col] = formatDateFromGoogle(r[i]);
             } else {
               obj[col] = r[i];
             }
           });
           return obj;
         });
+
+        window.data = processed;
         renderTable();
       })
       .catch(err => {
@@ -92,8 +100,8 @@
 
     function renderTable() {
       const input = document.getElementById("search").value.toLowerCase();
-      const filtered = rawData.filter(row =>
-        Object.values(row).some(v => v.toString().toLowerCase().includes(input))
+      const filtered = window.data.filter(row =>
+        Object.values(row).some(v => String(v).toLowerCase().includes(input))
       );
 
       if (filtered.length === 0) {
