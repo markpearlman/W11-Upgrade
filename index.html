@@ -12,6 +12,10 @@
     h2 {
       color: #003049;
     }
+    p {
+      max-width: 700px;
+      margin-bottom: 20px;
+    }
     input {
       padding: 8px;
       width: 300px;
@@ -47,10 +51,9 @@
     const SHEET_NAME = "CleanView";
     const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${SHEET_NAME}&tqx=out:json`;
 
+    const COLUMNS_TO_SHOW = ["Last", "First", "Upgrade/Replace", "Machine Type", "Scheduled Date", "Computer ID"];
+
     function formatDate(val) {
-      if (typeof val === 'object' && val instanceof Date) {
-        return new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).format(val);
-      }
       if (typeof val === 'string' && val.startsWith('Date(')) {
         try {
           const parts = val.match(/\d+/g);
@@ -92,12 +95,12 @@
       }
 
       let html = "<table><tr>";
-      for (let key in filtered[0]) html += `<th>${key}</th>`;
+      for (let key of COLUMNS_TO_SHOW) html += `<th>${key}</th>`;
       html += "</tr>";
 
       for (let row of filtered) {
         html += "<tr>";
-        for (let key in row) html += `<td>${row[key]}</td>`;
+        for (let key of COLUMNS_TO_SHOW) html += `<td>${row[key] || ''}</td>`;
         html += "</tr>";
       }
 
