@@ -1,62 +1,62 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Windows 11 Upgrade Schedule</title>
   <style>
     body {
-      font-family: 'Segoe UI', sans-serif;
-      background-color: #f8f9fa;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      background: #f8f9fa;
       color: #333;
       padding: 40px;
     }
-    h1 {
-      color: #2c3e50;
-      font-size: 28px;
+    h2 {
+      color: #1b223b;
     }
-    p.instructions {
-      font-size: 16px;
-      color: #34495e;
-      margin-bottom: 20px;
+    #instructions {
+      margin-bottom: 15px;
+      font-size: 1rem;
+      color: #555;
     }
-    input[type="text"] {
-      padding: 8px 10px;
-      font-size: 14px;
+    input {
+      padding: 10px;
       width: 300px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
+      font-size: 1rem;
     }
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 20px;
+      margin-top: 25px;
     }
     th {
-      background-color: #dbe9f4;
-      color: #2c3e50;
+      background-color: #1b223b;
+      color: #ffffff;
+      font-weight: bold;
       padding: 10px;
       text-align: left;
-      border-bottom: 1px solid #ccc;
     }
     td {
-      padding: 8px;
-      border-bottom: 1px solid #eee;
+      padding: 10px;
+      border-top: 1px solid #ddd;
+    }
+    tr:nth-child(even) td {
+      background-color: #f2f2f2;
     }
   </style>
 </head>
 <body>
-  <h1>Windows 11 Upgrade Schedule</h1>
-  <p class="instructions">
-    Type your name or computer ID below to find your upgrade date. If you don’t see your device listed, it may already be upgraded or pending scheduling. Contact Tech Support if you have questions.
-  </p>
-  <input type="text" id="search" placeholder="Search by name or computer ID" oninput="renderTable()" autofocus>
+  <h2>Windows 11 Upgrade Schedule</h2>
+  <div id="instructions">
+    Use the box below to search by your name or computer ID to see when your upgrade is scheduled.<br/>
+    If you don't see your device, it may have already been upgraded or hasn't been scheduled yet.
+  </div>
+  <input type="text" id="search" placeholder="Search by name or computer ID" oninput="renderTable()" autofocus />
   <div id="output">Loading...</div>
 
   <script>
     const SHEET_ID = "13c6BTkvAj8hyE7mQNCU7XNE5_MDkqEsGljyhy4EVGqg";
-    const SHEET_GID = "0"; // Update if different tab
-    const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?gid=${SHEET_GID}&tqx=out:json`;
+    const SHEET_NAME = "CleanView";
+    const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${SHEET_NAME}&tqx=out:json`;
 
     let rawData = [];
 
@@ -65,8 +65,25 @@
       .then(text => {
         const json = JSON.parse(text.substring(47).slice(0, -2));
         const cols = json.table.cols.map(col => col.label);
-        const rows = json.table.rows.map(row => row.c.map(c => (c ? c.v : 'Not Scheduled')));
-        rawData = rows.map(r => Object.fromEntries(cols.map((col, i) => [col, r[i]])));
+        const rows = json.table.rows.map(row =>
+          row.c.map(c => (c ? c.v : ""))
+        );
+        rawData = rows.map(r => {
+          const rowObject = {};
+          cols.forEach((col, i) => {
+            let val = r[i];
+            if (col === "Scheduled Date") {
+              if (!val) {
+                val = "Not scheduled";
+              } else if (typeof val === "object" && val instanceof Date === false) {
+                const d = new Date(val);
+                val = (d.getMonth() + 1) + "/" + d.getDate() + "/" + d.getFullYear();
+              }
+            }
+            rowObject[col] = val;
+          });
+          return rowObject;
+        });
         renderTable();
       })
       .catch(err => {
@@ -77,7 +94,9 @@
     function renderTable() {
       const input = document.getElementById("search").value.toLowerCase();
       const filtered = rawData.filter(row =>
-        Object.values(row).some(v => String(v).toLowerCase().includes(input))
+        Object.values(row).some(v =>
+          v.toLowerCase().includes(input)
+        )
       );
 
       if (filtered.length === 0) {
@@ -85,14 +104,18 @@
         return;
       }
 
+      const keys = Object.keys(filtered[0]).slice(0, 6);  // First 6 columns only
       let html = "<table><tr>";
-      const keys = Object.keys(filtered[0]).slice(0, 6);
-      keys.forEach(key => html += `<th>${key}</th>`);
+      keys.forEach(k => {
+        html += `<th>${k}</th>`;
+      });
       html += "</tr>";
 
       filtered.forEach(row => {
         html += "<tr>";
-        keys.forEach(key => html += `<td>${row[key]}</td>`);
+        keys.forEach(k => {
+          html += `<td>${row[k]}</td>`;
+        });
         html += "</tr>";
       });
 
