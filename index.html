@@ -1,0 +1,116 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Upgrade Schedule Lookup</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background-color: #f7f9fa;
+    }
+    h2 {
+      color: #002855;
+    }
+    #instructions {
+      background-color: #e1ecf4;
+      padding: 10px;
+      border-left: 4px solid #002855;
+      margin-bottom: 15px;
+    }
+    input[type="text"] {
+      padding: 8px;
+      width: 320px;
+      font-size: 14px;
+      margin-bottom: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th {
+      background-color: #002855;
+      color: #ffffff;
+      padding: 10px;
+      text-align: left;
+    }
+    td {
+      padding: 8px;
+      border: 1px solid #ddd;
+    }
+    tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+  </style>
+</head>
+<body>
+  <h2>Upgrade Schedule Lookup</h2>
+  <div id="instructions">
+    Enter your name or computer ID below to check your upgrade date.<br />
+    If you do not see your device, it may already have been upgraded. Please contact Tech Support with questions.
+  </div>
+  <input type="text" id="search" placeholder="Search by name or computer ID" oninput="renderTable()" autofocus />
+  <div id="output">Loading...</div>
+
+  <script>
+    const SHEET_ID = "13c6BTkvAj8hyE7mQNCU7XNE5_MDkqEsGljyhy4EVGqg";
+    const SHEET_NAME = "CleanView";
+    const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${SHEET_NAME}&tqx=out:json`;
+
+    let rawData = [];
+
+    fetch(SHEET_URL)
+      .then(res => res.text())
+      .then(text => {
+        const json = JSON.parse(text.substring(47).slice(0, -2));
+        const cols = json.table.cols.map(col => col.label);
+        const rows = json.table.rows.map(row =>
+          row.c.map((c, i) => {
+            if (!c) return i === 4 ? "Not scheduled" : "";
+            if (i === 4 && typeof c.v === "object" && c.v instanceof Date === false) {
+              const d = new Date(c.v);
+              if (!isNaN(d)) {
+                return d.toLocaleDateString("en-GB"); // dd/mm/yyyy
+              }
+            }
+            return c.v;
+          })
+        );
+        rawData = rows.map(r => Object.fromEntries(cols.map((col, i) => [col, r[i]])));
+        renderTable();
+      })
+      .catch(err => {
+        document.getElementById("output").innerHTML = "❌ Failed to load data.";
+        console.error(err);
+      });
+
+    function renderTable() {
+      const input = document.getElementById("search").value.toLowerCase();
+      const filtered = rawData.filter(row =>
+        Object.values(row).some(v => v && v.toString().toLowerCase().includes(input))
+      );
+
+      if (filtered.length === 0) {
+        document.getElementById("output").innerHTML = "<p>No matches found.</p>";
+        return;
+      }
+
+      const keys = Object.keys(filtered[0]).slice(0, 6);
+      let html = "<table><thead><tr>";
+      keys.forEach(k => (html += `<th>${k}</th>`));
+      html += "</tr></thead><tbody>";
+
+      filtered.forEach(row => {
+        html += "<tr>";
+        keys.forEach(k => (html += `<td>${row[k]}</td>`));
+        html += "</tr>";
+      });
+
+      html += "</tbody></table>";
+      document.getElementById("output").innerHTML = html;
+    }
+  </script>
+</body>
+</html>
