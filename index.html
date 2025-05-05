@@ -103,7 +103,8 @@ const filtered = window.data.filter(row =>
   row.firstName.toLowerCase().includes(input) ||
   row.lastName.toLowerCase().includes(input) || // new
   row.computerID.toLowerCase().includes(input)
-
+);
+  
   if (filtered.length === 0) {
     document.getElementById("output").innerHTML = "<p>No matches found.</p>";
     return;
