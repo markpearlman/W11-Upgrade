@@ -76,16 +76,17 @@
       const json = JSON.parse(text.substring(47).slice(0, -2));
       const rows = json.table.rows.map(row => row.c.map(c => (c ? c.f || c.v : "")));
 
-      const processed = rows.map(r => {
-        return {
-          firstName: r[0],
-          lastInitial: r[1] ? r[1].charAt(0) + '.' : '',
-          computerID: r[2],
-          machineType: r[3],
-          upgradeReplace: r[4],
-          scheduledDate: formatDateFromGoogle(r[5])
-        };
-      });
+    const processed = rows.map(r => {
+  return {
+    firstName: r[1], // First Name is in column 1
+    lastInitial: r[0] ? r[0].charAt(0) + '.' : '', // Last Name initial from column 0
+    computerID: r[2],
+    machineType: r[3],
+    upgradeReplace: r[4],
+    scheduledDate: formatDateFromGoogle(r[5])
+  };
+});
+
 
       window.data = processed;
       renderTable();
