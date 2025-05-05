@@ -79,11 +79,12 @@
 const processed = rows.map(r => {
   return {
     firstName: r[1], // First
-    lastInitial: r[0] ? r[0].charAt(0) + '.' : '', // Last
-    machineType: r[3], // Machine Type
-    upgradeReplace: r[2], // Upgrade/Replace
-    scheduledDate: formatDateFromGoogle(r[4]), // Scheduled Date
-    computerID: r[5] // Keep for filtering only, not displayed
+    lastName: r[0], // Full last name (used only for searching)
+    lastInitial: r[0] ? r[0].charAt(0) + '.' : '',
+    machineType: r[3],
+    upgradeReplace: r[2],
+    scheduledDate: formatDateFromGoogle(r[4]),
+    computerID: r[5]
   };
 });
 
@@ -98,11 +99,10 @@ const processed = rows.map(r => {
 function renderTable() {
   const input = document.getElementById("search").value.toLowerCase();
 
-  const filtered = window.data.filter(row =>
-    row.firstName.toLowerCase().includes(input) ||
-    row.lastInitial.toLowerCase().includes(input) ||
-    row.computerID.toLowerCase().includes(input) // included for search
-  );
+const filtered = window.data.filter(row =>
+  row.firstName.toLowerCase().includes(input) ||
+  row.lastName.toLowerCase().includes(input) || // new
+  row.computerID.toLowerCase().includes(input)
 
   if (filtered.length === 0) {
     document.getElementById("output").innerHTML = "<p>No matches found.</p>";
