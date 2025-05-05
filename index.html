@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -75,19 +74,17 @@
       .then(res => res.text())
       .then(text => {
         const json = JSON.parse(text.substring(47).slice(0, -2));
-        const cols = json.table.cols.map(col => col.label).slice(0, 6);
         const rows = json.table.rows.map(row => row.c.map(c => (c ? c.f || c.v : "")));
 
         const processed = rows.map(r => {
-          const obj = {};
-          cols.forEach((col, i) => {
-            if (col === "Scheduled Date") {
-              obj[col] = formatDateFromGoogle(r[i]);
-            } else {
-              obj[col] = r[i];
-            }
-          });
-          return obj;
+          return {
+            firstName: r[0],
+            lastInitial: r[1] ? r[1].charAt(0) + '.' : '',
+            computerID: r[2],
+            machineType: r[3],
+            upgradeReplace: r[4],
+            scheduledDate: formatDateFromGoogle(r[5])
+          };
         });
 
         window.data = processed;
@@ -100,8 +97,11 @@
 
     function renderTable() {
       const input = document.getElementById("search").value.toLowerCase();
+
       const filtered = window.data.filter(row =>
-        Object.values(row).some(v => String(v).toLowerCase().includes(input))
+        row.firstName.toLowerCase().includes(input) ||
+        row.lastInitial.toLowerCase().includes(input) ||
+        row.computerID.toLowerCase().includes(input)
       );
 
       if (filtered.length === 0) {
@@ -109,15 +109,30 @@
         return;
       }
 
-      const headers = Object.keys(filtered[0]);
-      let html = "<table><thead><tr>";
-      headers.forEach(h => html += `<th>${h}</th>`);
-      html += "</tr></thead><tbody>";
+      let html = `
+        <table>
+          <thead>
+            <tr>
+              <th>First Name</th>
+              <th>Last Initial</th>
+              <th>Machine Type</th>
+              <th>Upgrade/Replace</th>
+              <th>Scheduled Date</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
 
       filtered.forEach(row => {
-        html += "<tr>";
-        headers.forEach(h => html += `<td>${row[h]}</td>`);
-        html += "</tr>";
+        html += `
+          <tr>
+            <td>${row.firstName}</td>
+            <td>${row.lastInitial}</td>
+            <td>${row.machineType}</td>
+            <td>${row.upgradeReplace}</td>
+            <td>${row.scheduledDate}</td>
+          </tr>
+        `;
       });
 
       html += "</tbody></table>";
