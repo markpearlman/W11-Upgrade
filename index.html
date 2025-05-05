@@ -79,10 +79,11 @@
 const processed = rows.map(r => {
   return {
     firstName: r[1], // First
-    lastInitial: r[0] ? r[0].charAt(0) + '.' : '', // Last initial
+    lastInitial: r[0] ? r[0].charAt(0) + '.' : '', // Last
     machineType: r[3], // Machine Type
     upgradeReplace: r[2], // Upgrade/Replace
-    scheduledDate: formatDateFromGoogle(r[4]) // Scheduled Date
+    scheduledDate: formatDateFromGoogle(r[4]), // Scheduled Date
+    computerID: r[5] // Keep for filtering only, not displayed
   };
 });
 
@@ -94,49 +95,49 @@ const processed = rows.map(r => {
       console.error(err);
     });
 
-  function renderTable() {
-    const input = document.getElementById("search").value.toLowerCase();
+function renderTable() {
+  const input = document.getElementById("search").value.toLowerCase();
 
-    const filtered = window.data.filter(row =>
-      row.firstName.toLowerCase().includes(input) ||
-      row.lastInitial.toLowerCase().includes(input) ||
-      row.computerID.toLowerCase().includes(input)
-    );
+  const filtered = window.data.filter(row =>
+    row.firstName.toLowerCase().includes(input) ||
+    row.lastInitial.toLowerCase().includes(input) ||
+    row.computerID.toLowerCase().includes(input) // included for search
+  );
 
-    if (filtered.length === 0) {
-      document.getElementById("output").innerHTML = "<p>No matches found.</p>";
-      return;
-    }
-
-    let html = `
-      <table>
-        <thead>
-          <tr>
-            <th>First Name</th>
-            <th>Last Initial</th>
-            <th>Machine Type</th>
-            <th>Upgrade/Replace</th>
-            <th>Scheduled Date</th>
-          </tr>
-        </thead>
-        <tbody>
-    `;
-
-    filtered.forEach(row => {
-      html += `
-        <tr>
-          <td>${row.firstName}</td>
-          <td>${row.lastInitial}</td>
-          <td>${row.machineType}</td>
-          <td>${row.upgradeReplace}</td>
-          <td>${row.scheduledDate}</td>
-        </tr>
-      `;
-    });
-
-    html += "</tbody></table>";
-    document.getElementById("output").innerHTML = html;
+  if (filtered.length === 0) {
+    document.getElementById("output").innerHTML = "<p>No matches found.</p>";
+    return;
   }
+
+  let html = `
+    <table>
+      <thead>
+        <tr>
+          <th>First Name</th>
+          <th>Last Initial</th>
+          <th>Machine Type</th>
+          <th>Upgrade/Replace</th>
+          <th>Scheduled Date</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  filtered.forEach(row => {
+    html += `
+      <tr>
+        <td>${row.firstName}</td>
+        <td>${row.lastInitial}</td>
+        <td>${row.machineType}</td>
+        <td>${row.upgradeReplace}</td>
+        <td>${row.scheduledDate}</td>
+      </tr>
+    `;
+  });
+
+  html += "</tbody></table>";
+  document.getElementById("output").innerHTML = html;
+}
 
   document.getElementById("search").addEventListener("input", renderTable);
   window.onload = () => document.getElementById("search").focus();
