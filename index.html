@@ -41,6 +41,11 @@
     tr:nth-child(even) {
       background-color: #F2F2F2;
     }
+    .checkmark {
+      text-align: center;
+      color: green;
+      font-size: 18px;
+    }
   </style>
 </head>
 <body>
@@ -55,93 +60,3 @@
 <script>
   const SHEET_ID = "13c6BTkvAj8hyE7mQNCU7XNE5_MDkqEsGljyhy4EVGqg";
   const SHEET_NAME = "CleanView";
-  const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${SHEET_NAME}&tqx=out:json`;
-
-  function formatDateFromGoogle(value) {
-    try {
-      const date = new Date(Date.parse(value));
-      if (isNaN(date)) return "Not Scheduled";
-      const mm = String(date.getMonth() + 1).padStart(2, '0');
-      const dd = String(date.getDate()).padStart(2, '0');
-      const yyyy = date.getFullYear();
-      return `${mm}/${dd}/${yyyy}`;
-    } catch {
-      return "Not Scheduled";
-    }
-  }
-
-  fetch(SHEET_URL)
-    .then(res => res.text())
-    .then(text => {
-      const json = JSON.parse(text.substring(47).slice(0, -2));
-      const rows = json.table.rows.map(row => row.c.map(c => (c ? c.f || c.v : "")));
-
-const processed = rows.map(r => {
-  return {
-    firstName: r[1], // First
-    lastName: r[0], // Full last name (used only for searching)
-    lastInitial: r[0] ? r[0].charAt(0) + '.' : '',
-    machineType: r[3],
-    upgradeReplace: r[2],
-    scheduledDate: formatDateFromGoogle(r[4]),
-    computerID: r[5]
-  };
-});
-
-      window.data = processed;
-      renderTable();
-    })
-    .catch(err => {
-      document.getElementById("output").innerHTML = "❌ Failed to load data.";
-      console.error(err);
-    });
-
-function renderTable() {
-  const input = document.getElementById("search").value.toLowerCase();
-
-const filtered = window.data.filter(row =>
-  row.firstName.toLowerCase().includes(input) ||
-  row.lastName.toLowerCase().includes(input) || // new
-  row.computerID.toLowerCase().includes(input)
-);
-  
-  if (filtered.length === 0) {
-    document.getElementById("output").innerHTML = "<p>No matches found.</p>";
-    return;
-  }
-
-  let html = `
-    <table>
-      <thead>
-        <tr>
-          <th>First Name</th>
-          <th>Last Initial</th>
-          <th>Machine Type</th>
-          <th>Upgrade/Replace</th>
-          <th>Scheduled Date</th>
-        </tr>
-      </thead>
-      <tbody>
-  `;
-
-  filtered.forEach(row => {
-    html += `
-      <tr>
-        <td>${row.firstName}</td>
-        <td>${row.lastInitial}</td>
-        <td>${row.machineType}</td>
-        <td>${row.upgradeReplace}</td>
-        <td>${row.scheduledDate}</td>
-      </tr>
-    `;
-  });
-
-  html += "</tbody></table>";
-  document.getElementById("output").innerHTML = html;
-}
-
-  document.getElementById("search").addEventListener("input", renderTable);
-  window.onload = () => document.getElementById("search").focus();
-</script>
-</body>
-</html>
