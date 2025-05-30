@@ -81,18 +81,19 @@
       const json = JSON.parse(text.substring(47).slice(0, -2));
       const rows = json.table.rows.map(row => row.c.map(c => (c ? c.f || c.v : "")));
 
-      const processed = rows.map(r => {
-        return {
-          firstName: r[1],
-          lastName: r[0],
-          lastInitial: r[0] ? r[0].charAt(0) + '.' : '',
-          machineType: r[3],
-          upgradeReplace: r[2],
-          scheduledDate: formatDateFromGoogle(r[4]),
-          computerID: r[5],
-          upgraded: r.length > 13 && r[13] === true ? "✅" : ""
-        };
-      });
+const processed = rows.map(r => {
+  return {
+    firstName: r[1],
+    lastName: r[0],
+    lastInitial: r[0] ? r[0].charAt(0) + '.' : '',
+    machineType: r[3],
+    upgradeReplace: r[2],
+    scheduledDate: formatDateFromGoogle(r[4]),
+    computerID: r[5],
+    upgraded: r.length > 13 && (r[13] === true || r[13] === "TRUE") ? "✅" : ""
+  };
+});
+
 
       window.data = processed;
       renderTable();
