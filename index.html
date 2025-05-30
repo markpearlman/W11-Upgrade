@@ -90,7 +90,7 @@
           upgradeReplace: r[2],
           scheduledDate: formatDateFromGoogle(r[4]),
           computerID: r[5],
-          upgraded: r[13] === true ? "✅" : ""
+          upgraded: r.length > 13 && r[13] === true ? "✅" : ""
         };
       });
 
